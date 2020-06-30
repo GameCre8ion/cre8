@@ -1,0 +1,33 @@
+# Project Folders
+/build
+/assets
+
+# Object files
+*.o
+*.obj
+
+# Linker output
+*.ilk
+*.map
+*.exp
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+
+# Executables
+*.exe
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# remedybg
+*.rdbg
