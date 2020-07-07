@@ -31,3 +31,6 @@
 
 # remedybg
 *.rdbg
+
+# build tools and batch scripts
+*.bat

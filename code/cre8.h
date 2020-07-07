@@ -3,7 +3,7 @@
  Cre8 C++ Win32 Game Development Header Lib
   
  creation date = June 27th 2020 11:03 pm 
- last revision = June 27th - GameCre8ion
+ last revision = July 6th - GameCre8ion
  ==============================================================================
 */
 // TODO(GameCre8ion): document how to use
@@ -11,8 +11,6 @@
 #ifndef CRE8_H
 #define CRE8_H
 
-// TODO(GameCre8ion): remove!!!
-#include <stdio.h>
 
 // ============================================================================
 // Win32 API
@@ -51,7 +49,10 @@ namespace cre8 {
     // Change to set other default values
     GLOBAL const i32 DEFAULT_WIN_WIDTH  = 640;
     GLOBAL const i32 DEFAULT_WIN_HEIGHT = 480;
-    
+    // Constants
+    GLOBAL const i32 NR_KEYBOARD_KEYS   = 256;
+    GLOBAL const i32 NR_MOUSE_BUTTONS   = 5;
+        
     // RGBA color constants
     GLOBAL const i32 WHITE       = 0xFFFFFFFF;
     GLOBAL const i32 SILVER      = 0xC0C0C0FF;
@@ -71,12 +72,41 @@ namespace cre8 {
     GLOBAL const i32 FUCHSIA     = 0xFF00FFFF;
     GLOBAL const i32 PURPLE      = 0x800080FF;
     
+    // TODO(GameCre8ion): Solve FullScreenScaling without enum; dont like current solution
     enum FullScreenScaling {
-        NONE,
+        NO,
         STRETCH,
         SCALE
-    };
+    };   
     
+    // NOTE(GameCre8ion): https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
+    typedef enum {
+        NONE = 0x00,
+        BACKSPACE = 0x08, TAB = 0x09, RETURN = 0x0D, SHIFT = 0x10, CTRL = 0x11,
+        ALT = 0x12, PAUSE = 0x13, CAPSLOCK = 0x14, ESCAPE = 0x1B, SPACE = 0x20,
+        PAGEUP = 0x21, PAGEDOWN = 0x22, END = 0x23, HOME = 0x24,
+        LEFT = 0x25, UP = 0x26, RIGHT = 0x27, DOWN = 0x28,
+        PRINTSCREEN = 0x2C, INSERT = 0x2D, DEL = 0x2E,
+        K0 = 0x30, K1 = 0x31, K2 = 0x32, K3 = 0x33, K4 = 0x34, K5 = 0x35,
+        K6 = 0x36, K7 = 0x37, K8 = 0x38, K9 = 0x39,
+        A = 0x41, B = 0x42, C = 0x43, D = 0x44, E = 0x45, F = 0x46, G = 0x47,
+        H = 0x48, I = 0x49, J = 0x4A, K = 0x4B, L = 0x4C, M = 0x4D, N = 0x4E,
+        O = 0x4F, P = 0x50, Q = 0x51, R = 0x52, S = 0x53, T = 0x54, U = 0x55,
+        V = 0x56, W = 0x57, X = 0x58, Y = 0x59, Z = 0x5A,
+        NUMPAD_0 = 0x60, NUMPAD_1 = 0x61, NUMPAD_2 = 0x62, NUMPAD_3 = 0x63,
+        NUMPAD_4 = 0x64, NUMPAD_5 = 0x65, NUMPAD_6 = 0x66, NUMPAD_7 = 0x67,
+        NUMPAD_8 = 0x68, NUMPAD_9 = 0x69,
+        NUMPAD_MUL = 0x6A, NUMPAD_ADD = 0x6B, NUMPAD_SEPERATOR = 0x6C,
+        NUMPAD_SUB = 0x6D, NUMPAD_DEC = 0x6E, NUMPAD_DIV = 0x6F,
+        F1 = 0x70, F2 = 0x71, F3 = 0x72, F4 = 0x73, F5 = 0x74, F6 = 0x75,
+        F7 = 0x76, F8 = 0x77, F9 = 0x78, F10 = 0x79, F11 = 0x7A, F12 = 0x7B,
+        LSHIFT = 0xA0, RSHIFT = 0xA1, LCTRL = 0xA2, RCTRL = 0xA3, TILDE = 0xC0
+    } Key;
+    
+    typedef enum {
+        LBUTTON = 0x01, RBUTTON = 0x02, MBUTTON = 0x04
+    } MouseButton;
+        
     struct Window {
         i32               width;
         i32               height;
@@ -84,6 +114,8 @@ namespace cre8 {
         i32               renderHeight;
         i32               renderTopLeftX;
         i32               renderTopLeftY;
+        i32               initWidth;
+        i32               initHeight;
         r32               aspectRatio;
         bool              fullScreen;
         FullScreenScaling scaling;
@@ -99,20 +131,28 @@ namespace cre8 {
         i32*       data;        
     };
     
+    struct ButtonState {
+        bool pressed = false;
+        bool released = false;
+        bool held= false;
+    };
+    
     
     // ========================================================================
-    // Cre8 App API 
+    // Cre8 Core API 
     // ========================================================================
-    class App {
+    class Core {
         
         public:
-        App() { }
-        ~App() { }
+        Core() { }
+        ~Core() { }
         
         public:
         bool Init(i32 width, i32 height, bool fullScreen, r32 fps = 60.0f);
         void Run();
+        void Stop();
         bool ShutDown();
+        
         
         // user function hooks
         virtual bool OnUserInit() { return true; }
@@ -123,6 +163,13 @@ namespace cre8 {
         // Helper functions
         bool IsFullScreen();
         void SetFullScreenScaling(FullScreenScaling scaling);       
+        void ToggleFullScreen();
+                
+        // user input functions
+        ButtonState GetKey(Key key);
+        ButtonState GetMouse(MouseButton button);
+        i32         GetMouseWheel();
+            
         
         //
         // Drawing Functions
@@ -148,6 +195,28 @@ namespace cre8 {
         u64          perfCountFrequency;
         r32          targetMS;
         
+        bool         oldKeyState[NR_KEYBOARD_KEYS];
+        bool         newKeyState[NR_KEYBOARD_KEYS];
+        ButtonState  KeyboardState[NR_KEYBOARD_KEYS];
+        bool         hasKeyFocus;
+        
+        bool         oldMouseState[NR_MOUSE_BUTTONS];
+        bool         newMouseState[NR_MOUSE_BUTTONS];
+        ButtonState  MouseState[NR_MOUSE_BUTTONS];
+        i32          mouseX;
+        i32          mouseY;
+        i32          mouseWheelDelta;
+        bool         hasMouseFocus;
+        
+        // platform independent functions
+        void ScanInputDevices();
+        void HandleKeyInput(i32 key, bool state);
+        void HandleMousePosition(i32 x, i32 y);
+        void HandleMouseWheel(i32 delta);
+        void HandleMouseButtonInput(i32 button, bool state);
+        void SetKeyFocus(bool hasFocus);
+        void SetMouseFocus(bool hasFocus);        
+        
         // win32 platform layer
         bool                    win32_CreateWindow(i32 width, i32 height, bool fullScreen);
         void                    win32_RunMessageLoop();
@@ -159,25 +228,26 @@ namespace cre8 {
         void                    win32_SetupRenderBuffer();
         void                    win32_DestroyRenderBuffer();
         void                    win32_SetupClock();
-        void                    win32_HandleResize();
+        void                    win32_HandleResize();        
+        
     };
 }
 
 
 // ========================================================================
-// CRE8 APP IMPLEMENTATION
+// CRE8 CORE IMPLEMENTATION
 // ========================================================================
 namespace cre8 {
         
-    GLOBAL App* appPtr     = nullptr;
+    GLOBAL Core* corePtr   = nullptr;
     GLOBAL bool bIsRunning = true;
     
     
     // ----------------------------------------------------------------------------
     // Controlled initialization; use hook function OnUserInit 
     // ----------------------------------------------------------------------------
-    bool App::Init(i32 width, i32 height, bool fullScreen, r32 fps) {
-        appPtr = this;
+    bool Core::Init(i32 width, i32 height, bool fullScreen, r32 fps) {
+        corePtr = this;
         targetMS = (1.0f / fps) * 1000.0f;
         // NOTE(GameCre8ion): Need to call DPI awareness mode before any win32 code
         win32_EnableDPIAwareness();
@@ -194,9 +264,9 @@ namespace cre8 {
     
     
     // ----------------------------------------------------------------------------
-    // Actual main game loop
+    // Actual game loop
     // ----------------------------------------------------------------------------
-    void App::Run() {
+    void Core::Run() {
         bIsRunning = true;
         r32 dt = 0.0f;
         
@@ -205,7 +275,12 @@ namespace cre8 {
         QueryPerformanceCounter(&lastCounter);
                 
         while (bIsRunning) {
+            // NOTE(GameCre8ion): need to reset the mouse wheel delta every frame
+            mouseWheelDelta = 0;
+            
             win32_RunMessageLoop();    
+            
+            ScanInputDevices();
             
             // NOTE(GameCre8ion): clamp dt when in debugging mode or something happens
             // keeps the simulation controlled
@@ -217,7 +292,7 @@ namespace cre8 {
             // Run simulation for 1 time step
             OnUserUpdate(dt);
             OnUserRender(dt);                                
-            
+                        
             // clock current frame
             QueryPerformanceCounter(&counter);
             i64 ticksElapsed = counter.QuadPart - lastCounter.QuadPart;
@@ -243,12 +318,12 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // Code run on exit process, use hook function OnUserShutdown 
     // ----------------------------------------------------------------------------
-    bool App::ShutDown() {
+    bool Core::ShutDown() {
         if(OnUserShutDown()) {
             // NOTE(GameCre8ion): Resets scheduler clock granularity
             timeEndPeriod(1);
             win32_DestroyRenderBuffer();
-            // TODO(GameCre8ion): Shut down application
+            PostQuitMessage(0); 
             return true;
         } else {
             // keep running on user request
@@ -261,7 +336,7 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // Getter for static win32 callback to give full screen status
     // ----------------------------------------------------------------------------
-    bool App::IsFullScreen() {
+    bool Core::IsFullScreen() {
         return window.fullScreen;    
     }
     
@@ -269,10 +344,166 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // Setter for scaling mode to full screen
     // ----------------------------------------------------------------------------
-    void App::SetFullScreenScaling(FullScreenScaling scaling) {
+    void Core::SetFullScreenScaling(FullScreenScaling scaling) {
+        // TODO(GameCre8ion): solve with a different solution?
         window.scaling = scaling;    
     }
+    
+    
+    // ----------------------------------------------------------------------------
+    // Toggle full screen to windows mode or visa versa
+    // ----------------------------------------------------------------------------
+    void Core::ToggleFullScreen() {
+        if (window.fullScreen) {
+            win32_SetWindowedMode(window.initWidth, window.initHeight);
+        } else {
+            win32_SetFullScreen();    
+        }
+    }
+    
+    
+    // ----------------------------------------------------------------------------
+    // Helper function to enable user to quit the game loop
+    // ----------------------------------------------------------------------------
+    void Core::Stop(){
+        bIsRunning = false;    
+    }
+    
+    
+    // ----------------------------------------------------------------------------
+    // Scans all hardware user input devices
+    // ----------------------------------------------------------------------------
+    void Core::ScanInputDevices() {
+        // keyboard scan
+        for(i32 i = 0; i < NR_KEYBOARD_KEYS; i++) {
+            // reset current state
+            KeyboardState[i].pressed = false;
+            KeyboardState[i].released = false;
+            // check if something has changed since last frame
+            if (newKeyState[i] != oldKeyState[i]) {
+                if (newKeyState[i]) {
+                    // if key was already held previous frame, it is not considered pressed
+                    // but held
+                    KeyboardState[i].pressed = !KeyboardState[i].held;
+                    KeyboardState[i].held = true;
+                }
+                else {
+                    KeyboardState[i].released = true;
+                    KeyboardState[i].held = false;
+                }
+            }
+            // store state for next frame
+            oldKeyState[i] = newKeyState[i];    
+        }
+        // mouse scan
+        for(i32 i = 0; i < NR_MOUSE_BUTTONS; i++) {
+            MouseState[i].pressed = false;
+            MouseState[i].released = false;
+            if (newMouseState[i] != oldMouseState[i]) {
+                if (newMouseState[i]) {
+                    // if button was already held previous frame, it is not considered pressed
+                    // but held
+                    MouseState[i].pressed = !MouseState[i].held;
+                    MouseState[i].held = true;
+                }
+                else {
+                    MouseState[i].released = true;
+                    MouseState[i].held = false;
+                }
+            }
+            // store state for next frame
+            oldMouseState[i] = newMouseState[i];            
+        }
+    }
+    
+    
+    // ----------------------------------------------------------------------------
+    // Handle key press
+    // ----------------------------------------------------------------------------
+    void Core::HandleKeyInput(i32 key, bool state) {
+        // TODO(GameCre8ion): static cast is ugly solution; come up with different idea? 
+        Key k = static_cast<Key>(key); // map wparam integer into enum 
+        newKeyState[k] = state;    
+    }
+    
+    
+    // ----------------------------------------------------------------------------
+    // Get the current key state
+    // ----------------------------------------------------------------------------
+    ButtonState Core::GetKey(Key key) {
+        return KeyboardState[key];    
+    }
+    
+    
+    // ----------------------------------------------------------------------------
+    // Handle mouse position change and convert to pixel coordinates
+    // ----------------------------------------------------------------------------
+    void Core::HandleMousePosition(i32 x, i32 y) {
+        // NOTE(GameCre8ion): x and y are in screen coordinates
+        float ratioX = (float)renderBuffer.width / (float)window.renderWidth;
+        float ratioY = (float)renderBuffer.height / (float)window.renderHeight;
+        // NOTE(GameCre8ion): corrects for scaling modes in full screen
+        mouseX = (x - window.renderTopLeftX) * ratioX;
+        mouseY = (y - window.renderTopLeftY) * ratioY;
         
+        if (mouseX < 0) mouseX = 0;
+        if (mouseX > renderBuffer.width) mouseX = renderBuffer.width;
+        if (mouseY < 0) mouseY = 0;
+        if (mouseY > renderBuffer.height) mouseY = renderBuffer.height;
+    }
+    
+    
+    // ----------------------------------------------------------------------------
+    // Handle mouse wheel scroll
+    // ----------------------------------------------------------------------------
+    void Core::HandleMouseWheel(i32 delta) {
+        // NOTE(GameCre8ion): add delta, there can be multiple scrolls per frame
+        // TODO(GameCre8ion): where to reset to 0? ScanInput?
+        mouseWheelDelta += delta;    
+    }
+    
+    
+    // ----------------------------------------------------------------------------
+    // Handle Mouse Button press
+    // ----------------------------------------------------------------------------
+    void Core::HandleMouseButtonInput(i32 button, bool state) {
+        // TODO(GameCre8ion): static cast is ugly solution; come up with different idea? 
+        MouseButton k = static_cast<MouseButton>(button); // map wparam integer into enum 
+        newMouseState[k] = state;    
+    }
+    
+    
+    // ----------------------------------------------------------------------------
+    // Get the current Mouse state
+    // ----------------------------------------------------------------------------
+    ButtonState Core::GetMouse(MouseButton button) {
+        return MouseState[button];    
+    }
+    
+    
+    // ----------------------------------------------------------------------------
+    // Get Mouse wheel 
+    // ----------------------------------------------------------------------------
+    i32 Core::GetMouseWheel() {
+        return mouseWheelDelta;
+    }
+    
+    
+    // ----------------------------------------------------------------------------
+    // Helper to set key focus state
+    // ----------------------------------------------------------------------------
+    void Core::SetKeyFocus(bool hasFocus) {
+        hasKeyFocus = hasFocus;
+    }
+    
+    
+    // ----------------------------------------------------------------------------
+    // Helper to set key focus state
+    // ----------------------------------------------------------------------------
+    void Core::SetMouseFocus(bool hasFocus) {
+        hasMouseFocus = hasFocus;
+    }
+    
 }
 
 
@@ -283,7 +514,7 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // Registers and creates application window.
     // ----------------------------------------------------------------------------
-    bool App::win32_CreateWindow(i32 width, i32 height, bool fullScreen) {        
+    bool Core::win32_CreateWindow(i32 width, i32 height, bool fullScreen) {        
         // Store initial window state
         window.width = width;
         window.height = height;
@@ -291,6 +522,8 @@ namespace cre8 {
         window.renderHeight = height;
         window.renderTopLeftX = 0;
         window.renderTopLeftY = 0;
+        window.initWidth = width;
+        window.initHeight = height;
         window.fullScreen = fullScreen;
         window.aspectRatio = (r32)width / (r32)height;
         window.scaling = SCALE;
@@ -340,7 +573,7 @@ namespace cre8 {
     // Uses PeekMessage to prevent stall in case there is no messages in the 
     // queue. PeekMessage removes the handles message from the queue.
     // ----------------------------------------------------------------------------
-    void App::win32_RunMessageLoop() {
+    void Core::win32_RunMessageLoop() {
         MSG msg = { };
         while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
             TranslateMessage(&msg);
@@ -352,62 +585,85 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // Handles the win32 system events
     // ----------------------------------------------------------------------------
-    LRESULT CALLBACK App::win32_Callback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    LRESULT CALLBACK Core::win32_Callback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         // TODO(GameCre8ion): rewrite EventHandler --> implement keyboard state etc.
         // TODO(GameCre8ion): handle lost of focus / background gracefully
         switch (uMsg)
         {
             case WM_DESTROY:
-            {
-                PostQuitMessage(0);
-            }
+            { PostQuitMessage(0); }
             return 0;
             
             case WM_CLOSE:
-            {
-                bIsRunning = false;
-                PostQuitMessage(0);
-            }
+            { bIsRunning = false; }
             return 0;
             
             case WM_SIZE:
-            {
-                //appPtr->win32_HandleResize();                
-            }
+            { /* do nothing when this message is fired. resizing is fully controlled */ }
             return 0;
             
             case WM_DPICHANGED:
-            {
-                // TODO(GameCre8ion): handle switch to other screen with different dpi
-            }
+            { /*// TODO(GameCre8ion): handle switch to other screen with different dpi  */ }
             return 0;
             
-            // TODO(GameCre8ion): REMOVE PAINT! we will use stretch bits
-            //case WM_PAINT:
-            //{
-                //PAINTSTRUCT ps;
-                //HDC hdc = BeginPaint(hwnd, &ps);
-                //FillRect(hdc, &ps.rcPaint, (HBRUSH) (COLOR_WINDOW+1));
-                //EndPaint(hwnd, &ps);
-            //}            
-            //return 0;
+            case WM_SETFOCUS:
+            { corePtr->SetKeyFocus(true); }
+            return 0;
+            
+            case WM_KILLFOCUS:
+            { corePtr->SetKeyFocus(false); }
+            return 0;
             
             case WM_KEYDOWN:
-            { 
-                // TODO(GameCre8ion): debug virtual key
-                if (wParam == VK_ESCAPE) {
-                    bIsRunning = false;
-                    PostQuitMessage(0);
-                }
-                if (wParam == VK_SPACE) {
-                    if (appPtr->IsFullScreen()) {
-                        appPtr->win32_SetWindowedMode(640, 480);
-                    } else {
-                        appPtr->win32_SetFullScreen();
-                    }
-                 }
-            }
+            { corePtr->HandleKeyInput(wParam, true); }
             return 0;
+            
+            case WM_KEYUP:
+            { corePtr->HandleKeyInput(wParam, false); }
+            return 0;
+            
+            case WM_MOUSELEAVE:
+            { corePtr->SetMouseFocus(false); }
+            return 0;
+            
+            case WM_MOUSEWHEEL:
+            { corePtr->HandleMouseWheel(GET_WHEEL_DELTA_WPARAM(wParam)); } 
+            return 0;
+            
+            case WM_MOUSEMOVE:
+            {
+                // NOTE(GameCre8ion): Based on code in the OneLoneCoder Pixel Engine
+                u16 x = lParam & 0xFFFF; 
+                u16 y = (lParam >> 16) & 0xFFFF;
+                i16 ix = *(i16*)&x;   
+                i16 iy = *(i16*)&y;
+                corePtr->SetMouseFocus(true);
+                corePtr->HandleMousePosition(ix, iy);        
+            } return 0;
+            
+            case WM_LBUTTONDOWN:
+            { corePtr->HandleMouseButtonInput(LBUTTON, true); }
+            return 0;
+            
+            case WM_LBUTTONUP:
+            { corePtr->HandleMouseButtonInput(LBUTTON, false); }
+            return 0;
+            
+            case WM_RBUTTONDOWN:
+            { corePtr->HandleMouseButtonInput(RBUTTON, true); }
+            return 0;
+            
+            case WM_RBUTTONUP:
+            { corePtr->HandleMouseButtonInput(RBUTTON, false); }
+            return 0;
+            
+            case WM_MBUTTONDOWN:
+            { corePtr->HandleMouseButtonInput(MBUTTON, true); }
+            return 0;
+            
+            case WM_MBUTTONUP:
+            { corePtr->HandleMouseButtonInput(MBUTTON, false); }
+            return 0;            
         }
         return DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
@@ -416,7 +672,7 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // Sets full screen; uses HMONITOR for compatibility with multiple displays
     // ----------------------------------------------------------------------------
-    void App::win32_SetFullScreen() {
+    void Core::win32_SetFullScreen() {
         DWORD style = (WS_VISIBLE | WS_POPUP) &~(WS_CAPTION | WS_THICKFRAME);
         HMONITOR monitor = MonitorFromWindow(nullptr, MONITOR_DEFAULTTONEAREST);
         MONITORINFO monitorinfo = { sizeof(monitorinfo) };
@@ -432,7 +688,7 @@ namespace cre8 {
                 window.width = monitorinfo.rcMonitor.right;
                 window.height = monitorinfo.rcMonitor.bottom;
                 window.fullScreen = true;
-                // TODO(GameCre8ion): Does this work?
+                
                 win32_HandleResize();
             } else {
                 // TODO(GameCre8ion): LOGGING
@@ -446,7 +702,7 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // Sets windowed mode; uses HMONITOR for compatibility with multiple displays
     // ----------------------------------------------------------------------------
-    void App::win32_SetWindowedMode(i32 width, i32 height) {
+    void Core::win32_SetWindowedMode(i32 width, i32 height) {
         DWORD style = ((WS_OVERLAPPEDWINDOW  // use overlapped window
                         ^ WS_THICKFRAME      // no thick frame (no resizing)
                         ^ WS_MAXIMIZEBOX     // no maximizing button 
@@ -462,13 +718,19 @@ namespace cre8 {
             i32 topLeftX = (desktopWidth - width) / 2;
             i32 topLeftY = (desktopHeight - height) / 2;
             SetWindowLongPtr(window.handle, GWL_STYLE, style);
+            
+            // NOTE(GameCre8ion): correct for window decorations
+            RECT clientRect = { 0, 0, width, height };
+            AdjustWindowRect(&clientRect, style, FALSE);
+            int corrWidth = clientRect.right - clientRect.left;
+            int corrHeight = clientRect.bottom - clientRect.top;
+                        
             SetWindowPos(window.handle, HWND_TOP,
-                         topLeftX, topLeftY , width, height,
+                         topLeftX, topLeftY , corrWidth, corrHeight,
                          SWP_FRAMECHANGED | SWP_SHOWWINDOW);
             window.width = width;
             window.height = height;
             window.fullScreen = false;
-            // TODO(GameCre8ion): Does this work?
             win32_HandleResize();
         } else {
             // TODO(GameCre8ion): LOGGING
@@ -480,7 +742,7 @@ namespace cre8 {
     // Enable DPI awareness mode 
     // ----------------------------------------------------------------------------
     // TODO(GameCre8ion): Leave out and do in manifest file?
-    void App::win32_EnableDPIAwareness() {
+    void Core::win32_EnableDPIAwareness() {
         bool dpiAware = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
         // TODO(GameCre8ion): Handle failure more gracefully?
         if (!dpiAware) {
@@ -492,10 +754,9 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // Handle window resize (happens only to full screen and back to init size
     // ----------------------------------------------------------------------------
-    // TODO(GameCre8ion): can this be removed completely?
-    void App::win32_HandleResize() {
+    void Core::win32_HandleResize() {
         switch(window.scaling) {
-            case NONE:
+            case NO:
             {
                 window.renderWidth = renderBuffer.width;
                 window.renderHeight = renderBuffer.height;                
@@ -530,7 +791,7 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // Allocates memory for the render buffer creates the bitmapinfo
     // ----------------------------------------------------------------------------
-    void App::win32_SetupRenderBuffer() {
+    void Core::win32_SetupRenderBuffer() {
         renderBuffer.width = window.width;
         renderBuffer.height = window.height;
         renderBuffer.size = sizeof(i32) * renderBuffer.width * renderBuffer.height;
@@ -551,7 +812,7 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // Cleans up render buffer memory
     // ----------------------------------------------------------------------------
-    void App::win32_DestroyRenderBuffer() {
+    void Core::win32_DestroyRenderBuffer() {
         if (renderBuffer.data) {
             VirtualFree(renderBuffer.data, 0, MEM_RELEASE);
         }        
@@ -561,11 +822,12 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // Setup high resolution clock
     // ----------------------------------------------------------------------------
-    void App::win32_SetupClock() {
+    void Core::win32_SetupClock() {
         LARGE_INTEGER PerfCountFrequencyResult;
         QueryPerformanceFrequency(&PerfCountFrequencyResult);
         perfCountFrequency = PerfCountFrequencyResult.QuadPart;        
-    }
+    }    
+    
 }
 
 
@@ -576,7 +838,7 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // color in RGBA format
     // ----------------------------------------------------------------------------
-    void App::PutPixel(u32 x, u32 y, i32 color) {
+    void Core::PutPixel(u32 x, u32 y, i32 color) {
         
         i32 red = 0xFF000000 & color; 
         i32 green = 0x00FF0000 & color;
@@ -594,7 +856,7 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // color in RGBA format
     // ----------------------------------------------------------------------------
-    void App::PutPixelAlpha(u32 x, u32 y, i32 color) {
+    void Core::PutPixelAlpha(u32 x, u32 y, i32 color) {
         
         u8 inputR = (u8)((0xFF000000 & color) >> 24); 
         u8 inputG = (u8)((0x00FF0000 & color) >> 16);
@@ -629,7 +891,7 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // returns color in ARGB format
     // ----------------------------------------------------------------------------
-    i32 App::GetPixel(u32 x, u32 y) {
+    i32 Core::GetPixel(u32 x, u32 y) {
         i32 color = 0;
         if ((x > 0) & (x < renderBuffer.width) & (y > 0) & (y < renderBuffer.height)) {
             color = *(renderBuffer.data + y * renderBuffer.width + x);
@@ -642,7 +904,7 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // color in RGBA format
     // ----------------------------------------------------------------------------
-    void App::ClearScreen(i32 color) {
+    void Core::ClearScreen(i32 color) {
         
         for(int y = 0; y < renderBuffer.height; y++) {
             for(int x = 0; x < renderBuffer.width; x++) {
@@ -655,7 +917,7 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // Draws a rectangle in RGBA color format
     // ----------------------------------------------------------------------------
-    void App::DrawRect(u32 x, u32 y, u32 width, u32 height, i32 color) {
+    void Core::DrawRect(u32 x, u32 y, u32 width, u32 height, i32 color) {
         // horizontal lines
         for(u32 i = x; i < (x + width + 1); i++) {
             PutPixel(i, y, color);
@@ -672,7 +934,7 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // Draws a rectangle in RGBA color format with alpha blending
     // ----------------------------------------------------------------------------
-    void App::DrawRectAlpha(u32 x, u32 y, u32 width, u32 height, i32 color) {
+    void Core::DrawRectAlpha(u32 x, u32 y, u32 width, u32 height, i32 color) {
         // horizontal lines
         for(u32 i = x; i < (x + width + 1); i++) {
             PutPixelAlpha(i, y, color);
@@ -689,7 +951,7 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // Draws a filled retangle in color RGBA format
     // ----------------------------------------------------------------------------
-    void App::FillRect(u32 x, u32 y, u32 width, u32 height, i32 color) {
+    void Core::FillRect(u32 x, u32 y, u32 width, u32 height, i32 color) {
         for(u32 j = y; j < (y + height + 1); j++) {
             for(u32 i = x; i < (x + width + 1); i++) {
                 PutPixel(i, j, color);
@@ -701,7 +963,7 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // Draws a filled rectangle color RGBA format with alpha blending
     // ----------------------------------------------------------------------------
-    void App::FillRectAlpha(u32 x, u32 y, u32 width, u32 height, i32 color) {
+    void Core::FillRectAlpha(u32 x, u32 y, u32 width, u32 height, i32 color) {
         for(u32 j = y; j < (y + height + 1); j++) {
             for(u32 i = x; i < (x + width + 1); i++) {
                 PutPixelAlpha(i, j, color);
@@ -714,7 +976,7 @@ namespace cre8 {
     // Based on Run Length Slice algorithm as presented by Michael Abrash
     // http://www.phatcode.net/res/224/files/html/ch36/36-01.html#Heading1
     // ----------------------------------------------------------------------------
-    void App::DrawLine(u32 x1, u32 y1, u32 x2, u32 y2, i32 color) {
+    void Core::DrawLine(u32 x1, u32 y1, u32 x2, u32 y2, i32 color) {
         
         // Always draw top to bottom to reduce number of cases
         // Lines between the same endpoints will draw same pixels
@@ -878,7 +1140,7 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // Midpoint circle algorithm 
     // ----------------------------------------------------------------------------
-    void App::DrawCircle(u32 xCenter, u32 yCenter, u32 radius, i32 color) {
+    void Core::DrawCircle(u32 xCenter, u32 yCenter, u32 radius, i32 color) {
         i32 x = radius;
         i32 y = 0;
         i32 decision = 1 - x;
@@ -906,7 +1168,7 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // Midpoint circle algorithm - alpha
     // ----------------------------------------------------------------------------
-    void App::DrawCircleAlpha(u32 xCenter, u32 yCenter, u32 radius, i32 color) {
+    void Core::DrawCircleAlpha(u32 xCenter, u32 yCenter, u32 radius, i32 color) {
         i32 x = radius;
         i32 y = 0;
         i32 decision = 1 - x;
@@ -934,7 +1196,7 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // Midpoint circle algorithm - filled 
     // ----------------------------------------------------------------------------
-    void App::FillCircle(u32 xCenter, u32 yCenter, u32 radius, i32 color) {
+    void Core::FillCircle(u32 xCenter, u32 yCenter, u32 radius, i32 color) {
         i32 errorTerm = -radius;
         i32 x = radius;
         i32 y = 0;
@@ -981,7 +1243,7 @@ namespace cre8 {
     // ----------------------------------------------------------------------------
     // Midpoint circle algorithm - filled alpha
     // ----------------------------------------------------------------------------
-    void App::FillCircleAlpha(u32 xCenter, u32 yCenter, u32 radius, i32 color) {
+    void Core::FillCircleAlpha(u32 xCenter, u32 yCenter, u32 radius, i32 color) {
         i32 errorTerm = -radius;
         i32 x = radius;
         i32 y = 0;
