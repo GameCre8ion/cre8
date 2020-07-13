@@ -195,13 +195,13 @@ namespace cre8 {
         u64          perfCountFrequency;
         r32          targetMS;
         
-        bool         oldKeyState[NR_KEYBOARD_KEYS];
-        bool         newKeyState[NR_KEYBOARD_KEYS];
+        bool         oldKeyState[NR_KEYBOARD_KEYS] = { false };
+        bool         newKeyState[NR_KEYBOARD_KEYS] = { false };
         ButtonState  KeyboardState[NR_KEYBOARD_KEYS];
         bool         hasKeyFocus;
         
-        bool         oldMouseState[NR_MOUSE_BUTTONS];
-        bool         newMouseState[NR_MOUSE_BUTTONS];
+        bool         oldMouseState[NR_MOUSE_BUTTONS] = { false };
+        bool         newMouseState[NR_MOUSE_BUTTONS] = { false };
         ButtonState  MouseState[NR_MOUSE_BUTTONS];
         i32          mouseX;
         i32          mouseY;
@@ -273,7 +273,7 @@ namespace cre8 {
         LARGE_INTEGER counter;
         LARGE_INTEGER lastCounter; 
         QueryPerformanceCounter(&lastCounter);
-                
+        
         while (bIsRunning) {
             // NOTE(GameCre8ion): need to reset the mouse wheel delta every frame
             mouseWheelDelta = 0;
@@ -297,11 +297,12 @@ namespace cre8 {
             QueryPerformanceCounter(&counter);
             i64 ticksElapsed = counter.QuadPart - lastCounter.QuadPart;
             lastCounter = counter;
-            dt = ticksElapsed / perfCountFrequency;
-            
+            dt = (r32)ticksElapsed / (r32)perfCountFrequency;
+                        
             // TODO(GameCre8ion): improve sleeping algorithm;
             // base timing on multiple previous frames
-            i32 remainingMS = targetMS - (1000 * dt);
+            i32 remainingMS = (r32)targetMS - (1000.0f * dt);
+            
             if (remainingMS > 0) {
                 Sleep(remainingMS);    
             }            
@@ -544,15 +545,15 @@ namespace cre8 {
         wcex.lpszMenuName = nullptr;
         wcex.hbrBackground = nullptr;
         wcex.lpszClassName = L"Cre8_Window_Class";
-        
+                       
         if(RegisterClassEx(&wcex)) {
             DWORD exStyle = WS_EX_APPWINDOW;
             DWORD style = WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_CLIPCHILDREN;
                 
             window.handle = CreateWindowEx(exStyle, wcex.lpszClassName, L"Game App", style,
                                            10, 10, window.width, window.height,
-                                           NULL, NULL,
-                                           GetModuleHandle(nullptr), this);
+                                           NULL, NULL, GetModuleHandle(nullptr), this);
+            
             if (window.fullScreen) {
                 win32_SetFullScreen();    
             } else {

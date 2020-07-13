@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include "cre8.h"
 
-
 class Game : public cre8::Core {
     public:
     Game() { }
@@ -50,7 +49,7 @@ int main(int argc, char* argv[]) {
     
     Game game;
     
-    if (game.Init(640, 480, false, 30.0f)) {
+    if (game.Init(640, 480, false)) {
         game.Run();
     }
     game.ShutDown();
